@@ -34,6 +34,10 @@ import Testing
         #expect(ByteFormatter.detailRate(419_430) == "409.6K/s")
     }
 
+    @Test func metricOrder() {
+        #expect(Metric.allCases == [.cpu, .gpu, .ram, .disk, .network])
+    }
+
     @Test func menuBarValues() {
         let sample = snapshot()
         #expect(StatusTextFormatter.shortLabel(for: .cpu) == "CPU")

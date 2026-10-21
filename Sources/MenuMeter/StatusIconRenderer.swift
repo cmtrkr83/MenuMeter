@@ -8,16 +8,32 @@ enum StatusIconRenderer {
         size: NSSize = NSSize(width: 22, height: 22)
     ) -> NSImage {
         let label = StatusTextFormatter.shortLabel(for: metric)
+        let color = color(for: metric)
         let image = NSImage(size: size, flipped: false) { rect in
             drawRing(
                 fraction: fraction(for: metric, snapshot: snapshot),
                 label: label,
+                color: color,
                 in: rect
             )
             return true
         }
-        image.isTemplate = true
         return image
+    }
+
+    private static func color(for metric: Metric) -> NSColor {
+        switch metric {
+        case .cpu:
+            return .systemOrange
+        case .gpu:
+            return .systemPink
+        case .ram:
+            return .systemBlue
+        case .disk:
+            return .systemPurple
+        case .network:
+            return .systemGreen
+        }
     }
 
     private static func fraction(for metric: Metric, snapshot: MetricsSnapshot) -> Double {
@@ -35,7 +51,12 @@ enum StatusIconRenderer {
         }
     }
 
-    private static func drawRing(fraction: Double, label: String, in rect: NSRect) {
+    private static func drawRing(
+        fraction: Double,
+        label: String,
+        color: NSColor,
+        in rect: NSRect
+    ) {
         let lineWidth: CGFloat = 1.5
         let radius = max(1, min(rect.width, rect.height) / 2 - lineWidth)
         let center = NSPoint(x: rect.midX, y: rect.midY)
@@ -43,7 +64,7 @@ enum StatusIconRenderer {
         let track = NSBezierPath()
         track.appendArc(withCenter: center, radius: radius, startAngle: 0, endAngle: 360)
         track.lineWidth = lineWidth
-        NSColor.black.withAlphaComponent(0.25).setStroke()
+        color.withAlphaComponent(0.3).setStroke()
         track.stroke()
 
         if fraction > 0 {
@@ -56,13 +77,13 @@ enum StatusIconRenderer {
                 clockwise: true
             )
             arc.lineWidth = lineWidth
-            NSColor.black.setStroke()
+            color.setStroke()
             arc.stroke()
         }
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 6, weight: .semibold),
-            .foregroundColor: NSColor.black,
+            .foregroundColor: NSColor.labelColor,
         ]
         let text = NSAttributedString(string: label, attributes: attributes)
         let textSize = text.size()

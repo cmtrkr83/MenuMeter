@@ -15,7 +15,7 @@ macOS menü çubuğunda kompakt bir ikon ve sırayla dönen tek bir metrikle sis
 ### 1.2 Hedefler
 
 - Menü çubuğunda CPU, RAM, ağ indirme/yükleme hızı, SSD doluluk yüzdesi ve GPU kullanımını göstermek.
-- Metrikleri 3 saniyede bir döndürmek: CPU → RAM → Ağ → SSD → GPU.
+- Beş metriği (CPU, GPU, RAM, SSD, Ağ) aynı anda, soldan sağa yan yana göstermek.
 - Sol tıkta Activity Monitor'ü açmak; sağ tıkta ayrıntılı değerler, başlangıçta açma ve çıkış menüsü sunmak.
 - Xcode gerektirmeden, mevcut Command Line Tools + SwiftPM ile derlenebilmek.
 - Ortalama CPU tüketimi <%0,2 ve bellek tüketimi <20 MB olmak.
@@ -88,15 +88,15 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
   - `didWakeNotification` / `screensDidWakeNotification`: hemen bir örnek alır ve timer'ı yeniden başlatır.
   - Activity Monitor yolu ve açma yardımcıları.
 - **`StatusItemController`**:
-  - Beş ayrı `NSStatusItem` (variable length) yan yana: CPU, RAM, Ağ, SSD, GPU.
+  - Beş ayrı `NSStatusItem` (variable length) yan yana: CPU, GPU, RAM, SSD, Ağ.
   - Her öğede 22×22 halka ikonu (içinde kısa etiket) + sağında değer.
   - Sol tık: Activity Monitor'ü açar. Sağ tık: menüyü gösterir.
   - Her güncellemede ikon yenilenir; metin ve `accessibilityLabel` yalnızca değer değiştiyse güncellenir.
 - **`StatusIconRenderer`**:
-  - 22×22 template `NSImage` üretir.
-  - Tüm metrikler için dairesel doluluk halkası; halkanın içinde `CPU`, `RAM`, `AĞ`, `SSD`, `GPU` etiketi.
+  - 22×22 renkli `NSImage` üretir (template değil).
+  - Tüm metrikler için dairesel doluluk halkası; halkanın içinde `CPU`, `GPU`, `RAM`, `SSD`, `AĞ` etiketi.
   - Ağda oran olmadığından halka boş kalır; yönler değer metnindeki ↓↑ ile gösterilir.
-  - Template olduğundan açık/koyu menü çubuğuna otomatik uyum sağlar.
+  - Halka ve iz, metriğe özgü sistem rengiyle çizilir; etiket `labelColor` kullanır.
 - **`LoginItemController`**:
   - `SMAppService.mainApp` ile `Başlangıçta Aç` durumunu okur, kaydeder/kaldırır.
   - Hata durumunda durumu geri alır ve tek seferlik `NSAlert` gösterir.
@@ -117,14 +117,14 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 | Metrik | Kaynak / formül | Menü çubuğu (halka içi etiket + değer) |
 |---|---|---|
 | CPU | `host_processor_info`: (Δuser + Δsystem + Δnice) / Δtotal | `(CPU) 12%` |
-| RAM | `host_statistics64`: (active + wired + compressed + speculative) × sayfa boyutu / `hw.memsize` | `(RAM) 9.8G` |
-| Ağ | `sysctl(NET_RT_IFLIST2)` rx/tx bayt farkı; `lo0`, `utun*`, `awdl*`, `llw*`, `bridge*` hariç | `(AĞ) ↓1.2M ↑0.4M` |
-| SSD | `statfs("/")`: (blocks − bfree) × bsize / (blocks × bsize) | `(SSD) 42%` |
 | GPU | IOKit `IOAccelerator` → `Device Utilization %`, yoksa `Renderer Utilization %`, yoksa `GPU Core Utilization` | `(GPU) 8%` / `(GPU) —` |
+| RAM | `host_statistics64`: (active + wired + compressed + speculative) × sayfa boyutu / `hw.memsize` | `(RAM) 9.8G` |
+| SSD | `statfs("/")`: (blocks − bfree) × bsize / (blocks × bsize) | `(SSD) 42%` |
+| Ağ | `sysctl(NET_RT_IFLIST2)` rx/tx bayt farkı; `lo0`, `utun*`, `awdl*`, `llw*`, `bridge*` hariç | `(AĞ) ↓1.2M ↑0.4M` |
 
 ### 3.1 Kurallar
 
-- Sıra: **CPU → RAM → Ağ → SSD → GPU**; beş metrik her zaman birlikte, yan yana görünür (rotasyon yok).
+- Sıra: **CPU → GPU → RAM → SSD → Ağ**; beş metrik her zaman birlikte, yan yana görünür (rotasyon yok).
 - İlk ölçümde CPU ve ağ `0` gösterir (delta tabanı yoktur).
 - CPU, RAM, SSD, GPU değerleri `0.0...1.0` aralığına clamp edilir; yüzdeler tam sayıya yuvarlanır.
 - RAM menü çubuğunda kullanılan miktar (GB, tek ondalık); SSD yüzde olarak gösterilir.
@@ -150,8 +150,9 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 
 ### 4.1 Menü Çubuğu Öğeleri
 
-- Beş `NSStatusItem` değişken uzunlukta, soldan sağa: CPU, RAM, Ağ, SSD, GPU. Hepsi aynı anda görünür; dönen metrik yoktur.
-- Her öğede 22×22 pt template halka ve sağında değer metni. Halka dolgusu ilgili oranı gösterir; halkanın içinde kısa etiket yazar. Ağda halka boş kalır, ↓↑ değer metnindedir.
+- Beş `NSStatusItem` değişken uzunlukta, soldan sağa: CPU, GPU, RAM, SSD, Ağ. Hepsi aynı anda görünür; dönen metrik yoktur.
+- Her öğede 22×22 pt halka ve sağında değer metni. Halka dolgusu ilgili oranı gösterir; halkanın içinde kısa etiket yazar. Ağda halka boş kalır, ↓↑ değer metnindedir.
+- Halka renkleri: CPU turuncu, GPU pembe, RAM mavi, SSD mor, Ağ yeşil (dinamik sistem renkleri). İç etiket `labelColor` ile açık/koyu moda uyum sağlar.
 - Sol tıklama (herhangi bir öğe) Activity Monitor'ü açar; sağ tıklama menüyü açar.
 - Her öğenin erişilebilirlik etiketi kendi değeriyle güncellenir (ör. "CPU kullanımı yüzde 12").
 
@@ -271,7 +272,7 @@ Kaldırma: uygulamayı kapatıp `~/Applications/MenuMeter.app` dizinini silmek; 
 - **NetworkSamplerTests**: bayt farkı → hız; sayaç sıfırlanmasında negatif farkın `0` olması; ilk örnek `(0, 0)`.
 - **DiskSamplerTests**: doluluk oranı; sıfır toplam koruması; clamp.
 - **GPUSamplerTests**: `Device Utilization %` ve `Renderer Utilization %` ayrıştırma; eksik sözlükte `nil`; 0–1 ve 0–100 girdilerinin normalize edilmesi.
-- **FormatterTests**: halka etiketleri (`CPU`, `RAM`, `AĞ`, `SSD`, `GPU`), menü çubuğu değerleri (`12%`, `9.8G`, `↓1.2M ↑409.6K`, `42%`, `—`); bayt birim eşikleri.
+- **FormatterTests**: metrik sırası (`CPU`, `GPU`, `RAM`, `SSD`, `Ağ`), halka etiketleri, menü çubuğu değerleri (`12%`, `9.8G`, `↓1.2M ↑409.6K`, `42%`, `—`); bayt birim eşikleri.
 
 ### 7.2 Manuel Doğrulama
 

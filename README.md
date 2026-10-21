@@ -1,10 +1,10 @@
 # MenuMeter
 
-macOS menü çubuğunda CPU, RAM, ağ hızı, SSD doluluğu ve GPU kullanımını aynı anda gösteren hafif bir yardımcı uygulama.
+macOS menü çubuğunda CPU, GPU, RAM, SSD ve ağ hızını aynı anda gösteren hafif bir yardımcı uygulama.
 
 ## Özellikler
 
-- Beş metrik yan yana: CPU, RAM, Ağ, SSD, GPU. Her metrik kendi halkası ve değeriyle görünür; dönen metin yoktur.
+- Beş metrik soldan sağa yan yana: CPU (turuncu), GPU (pembe), RAM (mavi), SSD (mor), Ağ (yeşil). Her metrik kendi halkası ve değeriyle görünür; dönen metin yoktur.
 - Değerler 3 saniyede bir güncellenir.
 - Sol tık: Activity Monitor'ü açar.
 - Sağ tık: ayrıntılı değerler, Activity Monitor, Başlangıçta Aç ve Çıkış menüsü.

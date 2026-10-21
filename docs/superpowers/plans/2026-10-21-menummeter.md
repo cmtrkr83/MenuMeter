@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-21-menummeter-design.md`
 
-> **Revizyon (2026-10-21, Task 8 sırasında):** Kullanıcı isteğiyle rotasyon kaldırıldı. Beş metrik aynı anda, beş ayrı menü çubuğu öğesinde yan yana gösterilir; her halka kısa etiketi (`CPU`, `RAM`, `AĞ`, `SSD`, `GPU`) içerir. Task 1–7'deki `MetricRotation` referansları tarihseldir; kodda ve testlerde kaldırılmıştır. Bu revizyon Task 8 ve sonrası için bağlayıcıdır.
+> **Revizyon (2026-10-21, Task 8 sırasında):** Kullanıcı isteğiyle rotasyon kaldırıldı. Beş metrik aynı anda, beş ayrı menü çubuğu öğesinde soldan sağa **CPU, GPU, RAM, SSD, Ağ** sırasıyla gösterilir; her halka kısa etiketi içerir ve renklidir (CPU turuncu, GPU pembe, RAM mavi, SSD mor, Ağ yeşil). Task 1–7'deki `MetricRotation` referansları tarihseldir; kodda ve testlerde kaldırılmıştır. Bu revizyon Task 8 ve sonrası için bağlayıcıdır.
 
 ## Global Constraints
 
@@ -18,9 +18,9 @@
 - Üçüncü parti paket bağımlılığı yok.
 - Full Xcode gerekmez; mevcut Command Line Tools ve Swift 6.4 ile `swift build` / `swift test` çalışmalı.
 - macOS 13 ve üzeri hedeflenir.
-- Ölçüm aralığı sabit 3 saniye; beş metrik her zaman birlikte, soldan sağa CPU → RAM → Ağ → SSD → GPU (rotasyon yok).
+- Ölçüm aralığı sabit 3 saniye; beş metrik her zaman birlikte, soldan sağa CPU → GPU → RAM → SSD → Ağ (rotasyon yok).
 - Hedef: ortalama CPU <%0,2, fiziksel bellek footprint'i <20 MB.
-- Menü çubuğu değerleri Türkçe: `12%`, `9.8G`, `↓1.2M ↑0.4M`, `42%`, `8%` / `—`; halka etiketleri `CPU`, `RAM`, `AĞ`, `SSD`, `GPU`.
+- Menü çubuğu değerleri Türkçe: `12%`, `9.8G`, `↓1.2M ↑0.4M`, `42%`, `8%` / `—`; halka etiketleri `CPU`, `GPU`, `RAM`, `SSD`, `AĞ`.
 - Dock simgesi yok (`LSUIElement=true` + `.accessory`).
 
 ## Review Focus
@@ -883,9 +883,10 @@ app.run()
 ```
 
 `StatusIconRenderer`:
-- `NSImage(size:flipped:drawingHandler:)` ile 22×22 template görsel üret.
-- Tüm metrikler: arka plan halkası (`NSColor.black.withAlphaComponent(0.25)`) ve `NSBezierPath` yayı (`NSColor.black`); dolgu = ilgili snapshot alanı (`cpu`, `ramFraction`, `diskFraction`, `gpu ?? 0`), ağda 0. Halkanın ortasına 6 pt `shortLabel`.
-- Çizgisel kalınlık 1,5 pt; `image.isTemplate = true`.
+- `NSImage(size:flipped:drawingHandler:)` ile 22×22 renkli (template olmayan) görsel üret.
+- Tüm metrikler: arka plan halkası (metrik renginin %30 saydam hali) ve `NSBezierPath` yayı (tam renk); dolgu = ilgili snapshot alanı (`cpu`, `ramFraction`, `diskFraction`, `gpu ?? 0`), ağda 0. Halkanın ortasına 6 pt `shortLabel`.
+- Renkler: CPU `.systemOrange`, GPU `.systemPink`, RAM `.systemBlue`, SSD `.systemPurple`, Ağ `.systemGreen`; etiket `labelColor`.
+- Çizgisel kalınlık 1,5 pt.
 
 `StatusItemController`:
 - `Metric.allCases` için beş `NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)`.
