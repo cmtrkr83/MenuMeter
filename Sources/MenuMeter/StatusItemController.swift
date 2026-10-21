@@ -16,7 +16,7 @@ final class StatusItemController: NSObject {
     override init() {
         super.init()
 
-        for metric in Metric.allCases {
+        for metric in Metric.allCases.reversed() {
             let statusItem = NSStatusBar.system.statusItem(
                 withLength: NSStatusItem.variableLength
             )
