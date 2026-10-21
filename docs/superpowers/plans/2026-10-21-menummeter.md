@@ -2,13 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** macOS menü çubuğunda CPU, RAM, ağ hızı, SSD doluluğu ve GPU kullanımını 3 saniyede bir dönen tek metinle gösteren, sol tıkta Activity Monitor'ü açan, minimum kaynak tüketen yerel bir AppKit uygulaması inşa etmek.
+**Goal:** macOS menü çubuğunda CPU, RAM, ağ hızı, SSD doluluğu ve GPU kullanımını aynı anda yan yana gösteren, sol tıkta Activity Monitor'ü açan, minimum kaynak tüketen yerel bir AppKit uygulaması inşa etmek.
 
-**Architecture:** SwiftPM projesi; test edilebilir ölçüm/biçimlendirme mantığı `MenuMeterCore` kütüphanesinde, AppKit arayüzü `MenuMeter` çalıştırılabilirinde. Tek `DispatchSourceTimer` üç saniyede bir tüm metrikleri örnekler; `NSStatusItem` ikon + dönen metni gösterir. `scripts/build_app.sh` ad-hoc imzalı `MenuMeter.app` paketini `~/Applications/` içine kurar.
+**Architecture:** SwiftPM projesi; test edilebilir ölçüm/biçimlendirme mantığı `MenuMeterCore` kütüphanesinde, AppKit arayüzü `MenuMeter` çalıştırılabilirinde. Tek `DispatchSourceTimer` üç saniyede bir tüm metrikleri örnekler; beş `NSStatusItem` halka ikonu + değeri yan yana gösterir. `scripts/build_app.sh` ad-hoc imzalı `MenuMeter.app` paketini `~/Applications/` içine kurar.
 
 **Tech Stack:** Swift 6.4, SwiftPM, macOS Command Line Tools, AppKit (`NSStatusItem`, `NSWorkspace`), IOKit (`IOAccelerator`), Darwin (`host_processor_info`, `host_statistics64`, `sysctl`, `statfs`), ServiceManagement (`SMAppService`).
 
 **Spec:** `docs/superpowers/specs/2026-10-21-menummeter-design.md`
+
+> **Revizyon (2026-10-21, Task 8 sırasında):** Kullanıcı isteğiyle rotasyon kaldırıldı. Beş metrik aynı anda, beş ayrı menü çubuğu öğesinde yan yana gösterilir; her halka kısa etiketi (`CPU`, `RAM`, `AĞ`, `SSD`, `GPU`) içerir. Task 1–7'deki `MetricRotation` referansları tarihseldir; kodda ve testlerde kaldırılmıştır. Bu revizyon Task 8 ve sonrası için bağlayıcıdır.
 
 ## Global Constraints
 
@@ -16,9 +18,9 @@
 - Üçüncü parti paket bağımlılığı yok.
 - Full Xcode gerekmez; mevcut Command Line Tools ve Swift 6.4 ile `swift build` / `swift test` çalışmalı.
 - macOS 13 ve üzeri hedeflenir.
-- Ölçüm aralığı sabit 3 saniye; sıra CPU → RAM → Ağ → SSD → GPU.
-- Hedef: ortalama CPU <%0,2, RSS <20 MB.
-- Menü çubuğu metinleri Türkçe: `CPU 12%`, `RAM 9.8G`, `Ağ ↓1.2M ↑0.4M`, `SSD 42%`, `GPU 8%` / `GPU —`.
+- Ölçüm aralığı sabit 3 saniye; beş metrik her zaman birlikte, soldan sağa CPU → RAM → Ağ → SSD → GPU (rotasyon yok).
+- Hedef: ortalama CPU <%0,2, fiziksel bellek footprint'i <20 MB.
+- Menü çubuğu değerleri Türkçe: `12%`, `9.8G`, `↓1.2M ↑0.4M`, `42%`, `8%` / `—`; halka etiketleri `CPU`, `RAM`, `AĞ`, `SSD`, `GPU`.
 - Dock simgesi yok (`LSUIElement=true` + `.accessory`).
 
 ## Review Focus
@@ -860,10 +862,10 @@ git commit -m "feat: add 3-second metrics engine with restart support"
 - Modify: `Sources/MenuMeter/main.swift`
 
 **Interfaces:**
-- Consumes: `MetricsEngine`, `Metric`, `MetricRotation`, `MetricsSnapshot`, `StatusTextFormatter`.
+- Consumes: `MetricsEngine`, `Metric`, `MetricsSnapshot`, `StatusTextFormatter`.
 - Produces:
-  - `StatusIconRenderer.icon(for: Metric, snapshot: MetricsSnapshot, size: NSSize = .init(width: 18, height: 18)) -> NSImage`
-  - `StatusItemController.update(metric: Metric, snapshot: MetricsSnapshot)`; `var onOpenActivityMonitor: (() -> Void)?`; `var onMenuNeeded: (() -> NSMenu?)?`
+  - `StatusIconRenderer.icon(for: Metric, snapshot: MetricsSnapshot, size: NSSize = .init(width: 22, height: 22)) -> NSImage`
+  - `StatusItemController.update(snapshot: MetricsSnapshot)`; `var onOpenActivityMonitor: (() -> Void)?`; `var onMenuNeeded: (() -> NSMenu?)?`
   - `LoginItemController.isEnabled: Bool`; `setEnabled(_:) throws`
   - `MenuBuilder.makeMenu(snapshot: MetricsSnapshot?, loginEnabled: Bool, target: AnyObject, openSelector: Selector, toggleLoginSelector: Selector, quitSelector: Selector) -> NSMenu`
 
@@ -881,16 +883,15 @@ app.run()
 ```
 
 `StatusIconRenderer`:
-- `NSImage(size:flipped:drawingHandler:)` ile 18×18 template görsel üret.
-- CPU/RAM/SSD/GPU: arka plan halkası (`NSColor.black.withAlphaComponent(0.25)`) ve `NSBezierPath` yayı (`NSColor.black`); dolgu = ilgili snapshot alanı (`cpu`, `ramFraction`, `diskFraction`, `gpu ?? 0`). Ağ: iki küçük ok (yukarı/aşağı) çiz.
-- Çizgisel kalınlık 2 pt; `image.isTemplate = true`.
+- `NSImage(size:flipped:drawingHandler:)` ile 22×22 template görsel üret.
+- Tüm metrikler: arka plan halkası (`NSColor.black.withAlphaComponent(0.25)`) ve `NSBezierPath` yayı (`NSColor.black`); dolgu = ilgili snapshot alanı (`cpu`, `ramFraction`, `diskFraction`, `gpu ?? 0`), ağda 0. Halkanın ortasına 6 pt `shortLabel`.
+- Çizgisel kalınlık 1,5 pt; `image.isTemplate = true`.
 
 `StatusItemController`:
-- `NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)`.
-- `button.imagePosition = .imageLeading`, `button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)`.
-- `button.target = self`, `button.action = #selector(statusItemClicked)`, `button.sendAction(on: [.leftMouseUp, .rightMouseUp])`.
-- Sol tık: `onOpenActivityMonitor?()`; sağ tık: `onMenuNeeded?()` menüsünü `statusItem.menu` olarak ata, `button.performClick(nil)`, sonra `statusItem.menu = nil`.
-- `update`: metin ve metrik öncekiyle aynıysa erken döner; değilse `button.image = ...`, `button.title = ...`, `button.setAccessibilityLabel(StatusTextFormatter.accessibilityLabel(for: metric, snapshot: snapshot))`.
+- `Metric.allCases` için beş `NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)`.
+- Her `button`: `.imageLeading`, `monospacedDigitSystemFont(ofSize: 11)`, `target/action`, `sendAction(on: [.leftMouseUp, .rightMouseUp])`.
+- Sol tık: `onOpenActivityMonitor?()`; sağ tık: tıklanan öğeye `onMenuNeeded?()` menüsünü ata, `performClick(nil)`, sonra `menu = nil`.
+- `update(snapshot:)`: her öğe için ikonu yenile; değer değiştiyse `title` ve `accessibilityLabel` güncelle.
 
 `LoginItemController`:
 - `isEnabled`: `SMAppService.mainApp.status == .enabled`.
@@ -905,7 +906,7 @@ app.run()
 - `Çıkış` → `quitSelector`, `keyEquivalent = "q"`, `keyEquivalentModifierMask = .command`.
 
 `AppDelegate`:
-- `applicationDidFinishLaunching`: `statusController` ve `loginItemController` oluştur; closure'ları bağla; `engine.start` ile snapshot al; her snapshot'ta `currentMetric` ile güncelle ve `MetricRotation.next(after:)` yap.
+- `applicationDidFinishLaunching`: `statusController` ve `loginItemController` oluştur; closure'ları bağla; `engine.start` ile her snapshot'ta `statusController.update(snapshot:)` çağır (rotasyon yok).
 - `openActivityMonitor`: `/System/Applications/Utilities/Activity Monitor.app`; `NSWorkspace.shared.openApplication(at:configuration:)` (`activates = true`); tamamlanmada hata varsa `/Applications/Utilities/Activity Monitor.app` dene; o da yoksa `NSLog`.
 - `toggleLoginItem`: mevcut durumu tersine çevir; hata olursa `NSAlert` ile tek seferlik uyarı.
 - `quit`: `NSApp.terminate(nil)`.
@@ -916,14 +917,14 @@ app.run()
 - [ ] **Step 2: Build the executable**
 
 Run: `swift build`
-Expected: BUILD SUCCESSFUL, hata/uyarı yok.
+Expected: BUILD SUCCESSFUL. CLT ortamında `ld: warning: search path ... not found` görülebilir; bunlar ortam gürültüsüdür, kod uyarısı değildir.
 
 - [ ] **Step 3: Launch and verify manually**
 
 Run: `swift run MenuMeter &`
 Verify:
-- Menü çubuğunda ikon + metin görünür (Dock'ta simge yok).
-- Metin 3 saniyede bir değişir (CPU → RAM → Ağ → SSD → GPU).
+- Menü çubuğunda beş halka ve değerleri yan yana görünür (Dock'ta simge yok).
+- Değerler 3 saniyede bir güncellenir; metrikler dönmez, hepsi aynı anda kalır.
 - Sol tık Activity Monitor'ü öne getirir.
 - Sağ tık menüsünde beş ayrıntı satırı, Activity Monitor, Başlangıçta Aç ve Çıkış bulunur.
 - `kill %1` ile kapatılır.
@@ -992,12 +993,12 @@ Script şunları yapar:
 - [ ] **Step 3: Create `README.md`**
 
 Türkçe kısa README:
-- Ne yapar (beş metrik, 3 sn rotasyon, sol tık Activity Monitor, sağ tık menü).
+- Ne yapar (beş metrik aynı anda yan yana, 3 sn güncelleme, sol tık Activity Monitor, sağ tık menü).
 - Derleme/kurulum: `./scripts/build_app.sh`.
 - Çalıştırma: `open ~/Applications/MenuMeter.app`.
 - Başlangıçta açma: sağ tık → Başlangıçta Aç.
 - Kaldırma: önce Başlangıçta Aç'ı kapat, uygulamadan çık, `rm -rf ~/Applications/MenuMeter.app`.
-- Kaynak hedefi: <%0,2 CPU, <20 MB RSS.
+- Kaynak hedefi: <%0,2 CPU, <20 MB fiziksel bellek footprint'i.
 
 - [ ] **Step 4: Build, install and verify**
 
@@ -1014,13 +1015,15 @@ pgrep -fl MenuMeter
 Expected:
 - `codesign` "valid on disk" ve "satisfies its Designated Requirement".
 - `pgrep` iki satır değil, tek `MenuMeter` süreci.
-- Menü çubuğunda ikon + metin.
+- Menü çubuğunda beş halka ve değerleri yan yana.
 
 Resource check:
 ```bash
-ps -o pid,%cpu,rss,command -p "$(pgrep -x MenuMeter)"
+PID="$(pgrep -x MenuMeter)"
+vmmap -summary "$PID" | grep "Physical footprint"
+ps -o pid,%cpu,rss,command -p "$PID"
 ```
-Expected: `%CPU` < 1.0 (boşta), `RSS` < 25 MB.
+Expected: `%CPU` < 1.0 (boşta), fiziksel bellek footprint'i < 20 MB. `RSS` paylaşılan framework'ler yüzünden daha yüksek görünebilir; ölçüt footprint'tir.
 
 Manual checks:
 1. Sağ tık menüsü ve ayrıntı değerleri doğru.

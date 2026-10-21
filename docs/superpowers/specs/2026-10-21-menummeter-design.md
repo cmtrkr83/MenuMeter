@@ -73,9 +73,9 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 
 - **`MetricsEngine`**: enjekte edilen sampler'larla tek `DispatchSourceTimer` üzerinden 3 sn'de bir örnek alır; sonucu ana kuyruğa `@Sendable` callback ile iletir. `start(onUpdate:)`, `stop()`, `sampleNow()` arayüzleri. `deinit`/`stop` timer'ı iptal eder.
 
-- **`Metric`** (`enum`, `CaseIterable`): `cpu`, `ram`, `network`, `disk`, `gpu`; sabit sıra. `MetricRotation.next(after:)` bir sonraki metriği döndürür (sondan başa döner).
+- **`Metric`** (`enum`, `CaseIterable`): `cpu`, `ram`, `network`, `disk`, `gpu`; sabit sıra (menü çubuğunda soldan sağa).
 
-- **`StatusTextFormatter`**: `Metric` + `MetricsSnapshot` → menü çubuğu metni. Saf fonksiyonlar; test edilebilir.
+- **`StatusTextFormatter`**: `Metric` + `MetricsSnapshot` → halka etiketi (`shortLabel`) ve menü çubuğu değeri (`menuBarValue`). Saf fonksiyonlar; test edilebilir.
 
 - **`ByteFormatter`**: bayt/sn ve bayt değerlerini `B`, `K`, `M`, `G` (1024 tabanı, tek ondalık) biçimine çevirir.
 
@@ -88,12 +88,14 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
   - `didWakeNotification` / `screensDidWakeNotification`: hemen bir örnek alır ve timer'ı yeniden başlatır.
   - Activity Monitor yolu ve açma yardımcıları.
 - **`StatusItemController`**:
-  - `NSStatusItem` (variable length), ikon + `attributedTitle`.
+  - Beş ayrı `NSStatusItem` (variable length) yan yana: CPU, RAM, Ağ, SSD, GPU.
+  - Her öğede 22×22 halka ikonu (içinde kısa etiket) + sağında değer.
   - Sol tık: Activity Monitor'ü açar. Sağ tık: menüyü gösterir.
-  - Her güncellemede metni, ikonu ve `accessibilityLabel`'i yeniler; yalnızca değer değiştiyse çizer.
+  - Her güncellemede ikon yenilenir; metin ve `accessibilityLabel` yalnızca değer değiştiyse güncellenir.
 - **`StatusIconRenderer`**:
-  - 18×18 template `NSImage` üretir.
-  - CPU/RAM/SSD/GPU için dairesel doluluk halkası; ağ için küçük ↓↑ oku.
+  - 22×22 template `NSImage` üretir.
+  - Tüm metrikler için dairesel doluluk halkası; halkanın içinde `CPU`, `RAM`, `AĞ`, `SSD`, `GPU` etiketi.
+  - Ağda oran olmadığından halka boş kalır; yönler değer metnindeki ↓↑ ile gösterilir.
   - Template olduğundan açık/koyu menü çubuğuna otomatik uyum sağlar.
 - **`LoginItemController`**:
   - `SMAppService.mainApp` ile `Başlangıçta Aç` durumunu okur, kaydeder/kaldırır.
@@ -105,25 +107,24 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 1. Timer her 3 saniyede bir tetiklenir (utility kuyruğu).
 2. Beş sampler sırayla çağrılır, `MetricsSnapshot` üretilir.
 3. Snapshot ana kuyruğa iletilir.
-4. `MetricRotation` sıradaki metriği seçer.
-5. `StatusTextFormatter` metni, `StatusIconRenderer` ikonu üretir; `NSStatusItem` güncellenir.
-6. Sağ tık menüsündeki ayrıntı satırları aynı snapshot'tan beslenir.
+4. `StatusTextFormatter` her metrik için değeri, `StatusIconRenderer` halkayı üretir; beş `NSStatusItem` birlikte güncellenir.
+5. Sağ tık menüsündeki ayrıntı satırları aynı snapshot'tan beslenir.
 
 ---
 
 ## 3. Metrikler ve Gösterim
 
-| Metrik | Kaynak / formül | Menü çubuğu |
+| Metrik | Kaynak / formül | Menü çubuğu (halka içi etiket + değer) |
 |---|---|---|
-| CPU | `host_processor_info`: (Δuser + Δsystem + Δnice) / Δtotal | `CPU 12%` |
-| RAM | `host_statistics64`: (active + wired + compressed + speculative) × sayfa boyutu / `hw.memsize` | `RAM 9.8G` |
-| Ağ | `sysctl(NET_RT_IFLIST2)` rx/tx bayt farkı; `lo0`, `utun*`, `awdl*`, `llw*`, `bridge*` hariç | `Ağ ↓1.2M ↑0.4M` |
-| SSD | `statfs("/")`: (blocks − bfree) × bsize / (blocks × bsize) | `SSD 42%` |
-| GPU | IOKit `IOAccelerator` → `Device Utilization %`, yoksa `Renderer Utilization %`, yoksa `GPU Core Utilization` | `GPU 8%` / `GPU —` |
+| CPU | `host_processor_info`: (Δuser + Δsystem + Δnice) / Δtotal | `(CPU) 12%` |
+| RAM | `host_statistics64`: (active + wired + compressed + speculative) × sayfa boyutu / `hw.memsize` | `(RAM) 9.8G` |
+| Ağ | `sysctl(NET_RT_IFLIST2)` rx/tx bayt farkı; `lo0`, `utun*`, `awdl*`, `llw*`, `bridge*` hariç | `(AĞ) ↓1.2M ↑0.4M` |
+| SSD | `statfs("/")`: (blocks − bfree) × bsize / (blocks × bsize) | `(SSD) 42%` |
+| GPU | IOKit `IOAccelerator` → `Device Utilization %`, yoksa `Renderer Utilization %`, yoksa `GPU Core Utilization` | `(GPU) 8%` / `(GPU) —` |
 
 ### 3.1 Kurallar
 
-- Sıra: **CPU → RAM → Ağ → SSD → GPU**; her 3 saniyede sonraki metrik.
+- Sıra: **CPU → RAM → Ağ → SSD → GPU**; beş metrik her zaman birlikte, yan yana görünür (rotasyon yok).
 - İlk ölçümde CPU ve ağ `0` gösterir (delta tabanı yoktur).
 - CPU, RAM, SSD, GPU değerleri `0.0...1.0` aralığına clamp edilir; yüzdeler tam sayıya yuvarlanır.
 - RAM menü çubuğunda kullanılan miktar (GB, tek ondalık); SSD yüzde olarak gösterilir.
@@ -138,7 +139,8 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 
 ### 3.2 Biçimlendirme
 
-- Menü çubuğu yazı tipi: 11 pt, monospaced digit (değer değişiminde genişlik zıplamasını önler).
+- Menü çubuğu değer yazı tipi: 11 pt, monospaced digit (değer değişiminde genişlik zıplamasını önler).
+- Halka içi etiket: 6 pt semibold; 22 px halkada üç harf sığar.
 - Metin rengi: `labelColor` (menü çubuğu görünümüyle uyumlu).
 - Biçimlendirme saf fonksiyonlarda; yerelleştirme kapsam dışı (Türkçe sabit metinler).
 
@@ -146,12 +148,12 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 
 ## 4. Arayüz ve Etkileşim
 
-### 4.1 Menü Çubuğu Öğesi
+### 4.1 Menü Çubuğu Öğeleri
 
-- `NSStatusItem` değişken uzunlukta; ikon + metin.
-- İkon 18×18 pt template; o anki metrik yüzdesini halka dolgusu olarak gösterir. Ağ metriğinde ↓↑ sembolü kullanılır.
-- Sol tıklama Activity Monitor'ü açar; sağ tıklama menüyü açar.
-- Menü öğesinin erişilebilirlik etiketi her metrik değişiminde güncellenir (ör. "CPU kullanımı yüzde 12").
+- Beş `NSStatusItem` değişken uzunlukta, soldan sağa: CPU, RAM, Ağ, SSD, GPU. Hepsi aynı anda görünür; dönen metrik yoktur.
+- Her öğede 22×22 pt template halka ve sağında değer metni. Halka dolgusu ilgili oranı gösterir; halkanın içinde kısa etiket yazar. Ağda halka boş kalır, ↓↑ değer metnindedir.
+- Sol tıklama (herhangi bir öğe) Activity Monitor'ü açar; sağ tıklama menüyü açar.
+- Her öğenin erişilebilirlik etiketi kendi değeriyle güncellenir (ör. "CPU kullanımı yüzde 12").
 
 ### 4.2 Sağ Tık Menüsü
 
@@ -179,9 +181,9 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 - Alt süreç yok (`top`, `ps`, `powermetrics`, `netstat` yok).
 - Mach/sysctl tamponları yeniden kullanılır; `host_processor_info` tahsisi `vm_deallocate` ile serbest bırakılır.
 - IOKit GPU servisi bir kez açılır ve önbelleklenir.
-- Yalnızca metin/ikon değeri değiştiğinde çizim yapılır; animasyon yok.
+- Yalnızca ikon ve metin değeri değiştiğinde çizim yapılır; animasyon yok.
 - Uyku ve ekran kilidi sırasında timer durur.
-- Hedef: ortalama <%0,2 CPU, <20 MB RSS.
+- Hedef: ortalama <%0,2 CPU, <20 MB fiziksel bellek footprint'i (Activity Monitor "Memory").
 
 ### 5.2 Hata Durumları
 
@@ -235,7 +237,6 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 │       ├── NetworkSamplerTests.swift
 │       ├── DiskSamplerTests.swift
 │       ├── GPUSamplerTests.swift
-│       ├── MetricRotationTests.swift
 │       └── FormatterTests.swift
 ├── Resources/
 │   └── Info.plist
@@ -270,20 +271,19 @@ Kaldırma: uygulamayı kapatıp `~/Applications/MenuMeter.app` dizinini silmek; 
 - **NetworkSamplerTests**: bayt farkı → hız; sayaç sıfırlanmasında negatif farkın `0` olması; ilk örnek `(0, 0)`.
 - **DiskSamplerTests**: doluluk oranı; sıfır toplam koruması; clamp.
 - **GPUSamplerTests**: `Device Utilization %` ve `Renderer Utilization %` ayrıştırma; eksik sözlükte `nil`; 0–1 ve 0–100 girdilerinin normalize edilmesi.
-- **MetricRotationTests**: sıra ve başa dönüş.
-- **FormatterTests**: `CPU 12%`, `RAM 9.8G`, `Ağ ↓1.2M ↑0.4M`, `SSD 42%`, `GPU —`; bayt birim eşikleri.
+- **FormatterTests**: halka etiketleri (`CPU`, `RAM`, `AĞ`, `SSD`, `GPU`), menü çubuğu değerleri (`12%`, `9.8G`, `↓1.2M ↑409.6K`, `42%`, `—`); bayt birim eşikleri.
 
 ### 7.2 Manuel Doğrulama
 
 1. `swift test` ve `swift build` hatasız.
 2. `scripts/build_app.sh` → `~/Applications/MenuMeter.app`, `codesign -vvv` başarılı.
-3. Uygulama açıldığında menü çubuğunda ikon + metin görünür, Dock'ta simge yoktur.
-4. Metrik 3 saniyede bir döner ve değerler Makineyle uyumludur.
+3. Uygulama açıldığında menü çubuğunda beş halka ve değerleri yan yana görünür, Dock'ta simge yoktur.
+4. Değerler 3 saniyede bir güncellenir; metrikler dönmez, hepsi aynı anda kalır.
 5. Sol tık Activity Monitor'ü açar; sağ tık menüsü doğru çalışır.
 6. `Başlangıçta Aç` oturum kapatıp açıldığında uygulamayı başlatır.
 7. Uyku/uyanma sonrası ölçüm devam eder.
 8. `yes > /dev/null` çalışırken CPU değeri belirgin artar; `killall yes` sonrası düşer.
-9. Activity Monitor'de `MenuMeter` için CPU <%0,5 ve RSS <25 MB.
+9. Activity Monitor'de `MenuMeter` için CPU <%0,5 ve fiziksel bellek footprint'i <20 MB.
 10. GPU desteklenmiyorsa `GPU —` görünür ve uygulama kararlı kalır.
 
 ---

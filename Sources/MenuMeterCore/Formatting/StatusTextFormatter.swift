@@ -3,19 +3,34 @@ import Foundation
 public enum StatusTextFormatter {
     private static let bytesPerGiB = 1_073_741_824.0
 
-    public static func menuBarText(for metric: Metric, snapshot: MetricsSnapshot) -> String {
+    public static func shortLabel(for metric: Metric) -> String {
         switch metric {
         case .cpu:
-            return "CPU \(percent(snapshot.cpu))%"
+            return "CPU"
         case .ram:
-            return "RAM \(ByteFormatter.bytes(snapshot.ramUsed))"
+            return "RAM"
         case .network:
-            return "Ağ ↓\(ByteFormatter.byteRate(snapshot.networkDown)) ↑\(ByteFormatter.byteRate(snapshot.networkUp))"
+            return "AĞ"
         case .disk:
-            return "SSD \(percent(snapshot.diskFraction))%"
+            return "SSD"
         case .gpu:
-            guard let gpu = snapshot.gpu else { return "GPU —" }
-            return "GPU \(percent(gpu))%"
+            return "GPU"
+        }
+    }
+
+    public static func menuBarValue(for metric: Metric, snapshot: MetricsSnapshot) -> String {
+        switch metric {
+        case .cpu:
+            return "\(percent(snapshot.cpu))%"
+        case .ram:
+            return ByteFormatter.bytes(snapshot.ramUsed)
+        case .network:
+            return "↓\(ByteFormatter.byteRate(snapshot.networkDown)) ↑\(ByteFormatter.byteRate(snapshot.networkUp))"
+        case .disk:
+            return "\(percent(snapshot.diskFraction))%"
+        case .gpu:
+            guard let gpu = snapshot.gpu else { return "—" }
+            return "\(percent(gpu))%"
         }
     }
 

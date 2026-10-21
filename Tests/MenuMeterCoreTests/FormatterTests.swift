@@ -34,18 +34,27 @@ import Testing
         #expect(ByteFormatter.detailRate(419_430) == "409.6K/s")
     }
 
-    @Test func menuBarTexts() {
+    @Test func menuBarValues() {
         let sample = snapshot()
-        #expect(StatusTextFormatter.menuBarText(for: .cpu, snapshot: sample) == "CPU 12%")
-        #expect(StatusTextFormatter.menuBarText(for: .ram, snapshot: sample) == "RAM 9.8G")
-        #expect(StatusTextFormatter.menuBarText(for: .network, snapshot: sample) == "Ağ ↓1.2M ↑409.6K")
-        #expect(StatusTextFormatter.menuBarText(for: .disk, snapshot: sample) == "SSD 42%")
-        #expect(StatusTextFormatter.menuBarText(for: .gpu, snapshot: sample) == "GPU 8%")
+        #expect(StatusTextFormatter.shortLabel(for: .cpu) == "CPU")
+        #expect(StatusTextFormatter.shortLabel(for: .ram) == "RAM")
+        #expect(StatusTextFormatter.shortLabel(for: .network) == "AĞ")
+        #expect(StatusTextFormatter.shortLabel(for: .disk) == "SSD")
+        #expect(StatusTextFormatter.shortLabel(for: .gpu) == "GPU")
+
+        #expect(StatusTextFormatter.menuBarValue(for: .cpu, snapshot: sample) == "12%")
+        #expect(StatusTextFormatter.menuBarValue(for: .ram, snapshot: sample) == "9.8G")
+        #expect(
+            StatusTextFormatter.menuBarValue(for: .network, snapshot: sample)
+                == "↓1.2M ↑409.6K"
+        )
+        #expect(StatusTextFormatter.menuBarValue(for: .disk, snapshot: sample) == "42%")
+        #expect(StatusTextFormatter.menuBarValue(for: .gpu, snapshot: sample) == "8%")
     }
 
     @Test func gpuMissingRendersDash() {
         let sample = snapshot(gpu: nil)
-        #expect(StatusTextFormatter.menuBarText(for: .gpu, snapshot: sample) == "GPU —")
+        #expect(StatusTextFormatter.menuBarValue(for: .gpu, snapshot: sample) == "—")
         #expect(StatusTextFormatter.detailLines(for: sample).last == "GPU kullanılamıyor")
     }
 
