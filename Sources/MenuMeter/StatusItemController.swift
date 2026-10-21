@@ -26,7 +26,7 @@ final class StatusItemController: NSObject {
             button.action = #selector(statusItemClicked(_:))
             _ = button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.imagePosition = .imageLeading
-            button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+            button.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
 
             items.append(Item(metric: metric, statusItem: statusItem, lastText: nil))
         }

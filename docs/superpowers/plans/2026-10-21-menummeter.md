@@ -12,6 +12,8 @@
 
 > **Revizyon (2026-10-21, Task 8 sırasında):** Kullanıcı isteğiyle rotasyon kaldırıldı. Beş metrik aynı anda, beş ayrı menü çubuğu öğesinde soldan sağa **CPU, GPU, RAM, SSD, Ağ** sırasıyla gösterilir; her halka kısa etiketi içerir ve renklidir (CPU turuncu, GPU pembe, RAM mavi, SSD mor, Ağ yeşil). Task 1–7'deki `MetricRotation` referansları tarihseldir; kodda ve testlerde kaldırılmıştır. Bu revizyon Task 8 ve sonrası için bağlayıcıdır.
 
+> **Revizyon 2 (2026-10-21, paketleme sonrası):** Menü çubuğu değerleri sabit genişlikli slotlara alındı ve 11 pt monospaced system font kullanıldı; basamak/birim değişiminde öğeler artık kaymıyor. İlk açılışta `SMAppService` ile başlangıçta açma otomatik etkinleştirilir; kullanıcı menüden kapatabilir.
+
 ## Global Constraints
 
 - Yalnızca Apple yerel framework'leri kullanılacak: AppKit, Foundation, IOKit, ServiceManagement, Darwin, CoreGraphics.
@@ -890,7 +892,7 @@ app.run()
 
 `StatusItemController`:
 - `Metric.allCases` için beş `NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)`.
-- Her `button`: `.imageLeading`, `monospacedDigitSystemFont(ofSize: 11)`, `target/action`, `sendAction(on: [.leftMouseUp, .rightMouseUp])`.
+- Her `button`: `.imageLeading`, `monospacedSystemFont(ofSize: 11)` (tüm glifler sabit genişlik), `target/action`, `sendAction(on: [.leftMouseUp, .rightMouseUp])`.
 - Sol tık: `onOpenActivityMonitor?()`; sağ tık: tıklanan öğeye `onMenuNeeded?()` menüsünü ata, `performClick(nil)`, sonra `menu = nil`.
 - `update(snapshot:)`: her öğe için ikonu yenile; değer değiştiyse `title` ve `accessibilityLabel` güncelle.
 

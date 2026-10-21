@@ -99,6 +99,7 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
   - Halka ve iz, metriğe özgü sistem rengiyle çizilir; etiket `labelColor` kullanır.
 - **`LoginItemController`**:
   - `SMAppService.mainApp` ile `Başlangıçta Aç` durumunu okur, kaydeder/kaldırır.
+  - İlk açılışta başlangıçta açmayı otomatik etkinleştirir (`UserDefaults` bayrağı ile yalnızca bir kez); kullanıcı menüden kapatırsa bu tercih korunur.
   - Hata durumunda durumu geri alır ve tek seferlik `NSAlert` gösterir.
 - **`MenuBuilder`**: sağ tık menüsünü kurar.
 
@@ -128,6 +129,7 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 - İlk ölçümde CPU ve ağ `0` gösterir (delta tabanı yoktur).
 - CPU, RAM, SSD, GPU değerleri `0.0...1.0` aralığına clamp edilir; yüzdeler tam sayıya yuvarlanır.
 - RAM menü çubuğunda kullanılan miktar (GB, tek ondalık); SSD yüzde olarak gösterilir.
+- Menü çubuğu değerleri sabit genişliklidir; basamak/birim değişiminde öğeler sağa sola kaymaz.
 - Ağ birimleri otomatik ölçeklenir: `B/s`, `K/s`, `M/s`, `G/s` (1024 tabanı, tek ondalık).
 - GPU değeri `0.0...1.0` dışında gelirse yüzde kabul edilip 100'e bölünür; aralık dışı clamp edilir.
 - Sağ tık menüsünün üstünde pasif satırlar:
@@ -139,7 +141,8 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 
 ### 3.2 Biçimlendirme
 
-- Menü çubuğu değer yazı tipi: 11 pt, monospaced digit (değer değişiminde genişlik zıplamasını önler).
+- Menü çubuğu değer yazı tipi: 11 pt monospaced system (tüm glifler sabit genişlik); böylece eşit karakter sayısı eşit piksel genişliği verir.
+- Değerler sabit slotlarda: CPU/GPU/SSD 4 karakter (`100%`), RAM 5 karakter (`1024G`), Ağ 13 karakter (`↓1024G ↑1024G`). Birim ve basamak değişiminde öğe genişliği sabit kalır.
 - Halka içi etiket: 6 pt semibold; 22 px halkada üç harf sığar.
 - Metin rengi: `labelColor` (menü çubuğu görünümüyle uyumlu).
 - Biçimlendirme saf fonksiyonlarda; yerelleştirme kapsam dışı (Türkçe sabit metinler).
@@ -195,7 +198,7 @@ AppKit'ten bağımsız, test edilebilir çekirdek:
 | Ağ sayacı sıfırlanması/taşması | Negatif fark `0`'a kırpılır |
 | `statfs` başarısız | `SSD —` |
 | Activity Monitor bulunamıyor | Alternatif yol, sonra sessiz log |
-| Başlangıçta açma kaydı başarısız | İşaret geri alınır, tek seferlik uyarı gösterilir |
+| Başlangıçta açma kaydı başarısız | İlk açılışta sessiz log ve sonraki açılışta yeniden deneme; menüden denendiğinde tek seferlik uyarı |
 | İlk ölçüm | CPU ve ağ `0`; uygulama çökmez |
 | Sistem uykusu | Timer durur; uyanınca hemen örnek alınır |
 
@@ -281,7 +284,7 @@ Kaldırma: uygulamayı kapatıp `~/Applications/MenuMeter.app` dizinini silmek; 
 3. Uygulama açıldığında menü çubuğunda beş halka ve değerleri yan yana görünür, Dock'ta simge yoktur.
 4. Değerler 3 saniyede bir güncellenir; metrikler dönmez, hepsi aynı anda kalır.
 5. Sol tık Activity Monitor'ü açar; sağ tık menüsü doğru çalışır.
-6. `Başlangıçta Aç` oturum kapatıp açıldığında uygulamayı başlatır.
+6. Uygulama ilk açılışta başlangıçta açmayı otomatik etkinleştirir; oturum kapatıp açıldığında başlar. Menüden kapatılabilir.
 7. Uyku/uyanma sonrası ölçüm devam eder.
 8. `yes > /dev/null` çalışırken CPU değeri belirgin artar; `killall yes` sonrası düşer.
 9. Activity Monitor'de `MenuMeter` için CPU <%0,5 ve fiziksel bellek footprint'i <20 MB.

@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMainMenu()
+        loginItemController.enableAtFirstLaunch()
 
         statusController.onOpenActivityMonitor = { [weak self] in
             self?.openActivityMonitor()

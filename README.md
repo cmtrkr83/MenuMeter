@@ -8,6 +8,7 @@ macOS menü çubuğunda CPU, GPU, RAM, SSD ve ağ hızını aynı anda gösteren
 - Değerler 3 saniyede bir güncellenir.
 - Sol tık: Activity Monitor'ü açar.
 - Sağ tık: ayrıntılı değerler, Activity Monitor, Başlangıçta Aç ve Çıkış menüsü.
+- İlk açılışta başlangıçta açma otomatik etkinleştirilir; sistem her açıldığında uygulama başlar.
 - Dock simgesi yoktur; yalnızca menü çubuğunda çalışır.
 
 ## Gereksinimler
@@ -29,7 +30,7 @@ Betik uygulamayı release olarak derler, ad-hoc imzalar ve `~/Applications/MenuM
 open ~/Applications/MenuMeter.app
 ```
 
-Başlangıçta açmak için menü çubuğundaki bir öğeye sağ tıklayıp **Başlangıçta Aç** seçeneğini işaretleyin.
+Uygulama ilk açılışta kendisini başlangıç öğesi olarak kaydeder. Bu davranışı menü çubuğundaki bir öğeye sağ tıklayıp **Başlangıçta Aç** işaretini kaldırarak devre dışı bırakabilirsiniz.
 
 ## Kaynak hedefi
 
