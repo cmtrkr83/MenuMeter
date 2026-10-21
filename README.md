@@ -6,7 +6,7 @@ MenuMeter is a tiny native macOS app that keeps CPU, GPU, memory, SSD usage and 
 
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](#requirements)
 [![Swift 6.4](https://img.shields.io/badge/Swift-6.4-F05138?logo=swift&logoColor=white)](#build-from-source)
-[![Download](https://img.shields.io/github/v/release/cmtrkr83/MenuMeter?label=download&color=2ea44f)](https://github.com/cmtrkr83/MenuMeter/releases/latest)
+[![Download](https://img.shields.io/badge/Download-DMG-2ea44f?logo=apple&logoColor=white)](https://github.com/cmtrkr83/MenuMeter/releases/latest)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/cmtrkr)
 
 ![MenuMeter menu bar preview](docs/screenshots/menu-bar.png)

@@ -15,6 +15,8 @@ trap 'rm -rf "$STAGING"' EXIT
 
 cp -R "$INSTALLED_APP" "$STAGING/${APP_NAME}.app"
 ln -s /Applications "$STAGING/Applications"
+chmod 755 "$STAGING"
+chmod -R a+rX "$STAGING/${APP_NAME}.app"
 
 mkdir -p dist
 rm -f "dist/${DMG_NAME}"
