@@ -46,20 +46,57 @@ import Testing
         #expect(StatusTextFormatter.shortLabel(for: .disk) == "SSD")
         #expect(StatusTextFormatter.shortLabel(for: .gpu) == "GPU")
 
-        #expect(StatusTextFormatter.menuBarValue(for: .cpu, snapshot: sample) == "12%")
-        #expect(StatusTextFormatter.menuBarValue(for: .ram, snapshot: sample) == "9.8G")
+        #expect(StatusTextFormatter.menuBarValue(for: .cpu, snapshot: sample) == " 12%")
+        #expect(StatusTextFormatter.menuBarValue(for: .ram, snapshot: sample) == " 9.8G")
         #expect(
             StatusTextFormatter.menuBarValue(for: .network, snapshot: sample)
-                == "↓1.2M ↑409.6K"
+                == "↓ 1.2M ↑ 410K"
         )
-        #expect(StatusTextFormatter.menuBarValue(for: .disk, snapshot: sample) == "42%")
-        #expect(StatusTextFormatter.menuBarValue(for: .gpu, snapshot: sample) == "8%")
+        #expect(StatusTextFormatter.menuBarValue(for: .disk, snapshot: sample) == " 42%")
+        #expect(StatusTextFormatter.menuBarValue(for: .gpu, snapshot: sample) == "  8%")
+    }
+
+    @Test func menuBarValuesHaveFixedWidth() {
+        let samples = [
+            snapshot(cpu: 0, ramUsed: 0, down: 0, up: 999, gpu: 0),
+            snapshot(
+                cpu: 0.005,
+                ramUsed: 10_522_669_875,
+                down: 1_258_291,
+                up: 419_430,
+                gpu: 0.08
+            ),
+            snapshot(
+                cpu: 1,
+                ramUsed: 17_179_869_184,
+                down: 999_999_999_999,
+                up: 1_099_511_627_776,
+                gpu: 1
+            ),
+        ]
+
+        for sample in samples {
+            #expect(StatusTextFormatter.menuBarValue(for: .cpu, snapshot: sample).count == 4)
+            #expect(StatusTextFormatter.menuBarValue(for: .gpu, snapshot: sample).count == 4)
+            #expect(StatusTextFormatter.menuBarValue(for: .ram, snapshot: sample).count == 5)
+            #expect(StatusTextFormatter.menuBarValue(for: .disk, snapshot: sample).count == 4)
+            #expect(StatusTextFormatter.menuBarValue(for: .network, snapshot: sample).count == 13)
+        }
     }
 
     @Test func gpuMissingRendersDash() {
         let sample = snapshot(gpu: nil)
-        #expect(StatusTextFormatter.menuBarValue(for: .gpu, snapshot: sample) == "—")
+        #expect(StatusTextFormatter.menuBarValue(for: .gpu, snapshot: sample) == "   —")
         #expect(StatusTextFormatter.detailLines(for: sample).last == "GPU kullanılamıyor")
+    }
+
+    @Test func fixedRateSlots() {
+        #expect(ByteFormatter.menuBarRate(0) == "   0B")
+        #expect(ByteFormatter.menuBarRate(999) == " 999B")
+        #expect(ByteFormatter.menuBarRate(1_024) == " 1.0K")
+        #expect(ByteFormatter.menuBarRate(1_258_291) == " 1.2M")
+        #expect(ByteFormatter.menuBarRate(419_430) == " 410K")
+        #expect(ByteFormatter.menuBarRate(999_999_999_999) == " 931G")
     }
 
     @Test func detailLines() {

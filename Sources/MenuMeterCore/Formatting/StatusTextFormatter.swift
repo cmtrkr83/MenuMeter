@@ -21,16 +21,16 @@ public enum StatusTextFormatter {
     public static func menuBarValue(for metric: Metric, snapshot: MetricsSnapshot) -> String {
         switch metric {
         case .cpu:
-            return "\(percent(snapshot.cpu))%"
+            return percentSlot(percent(snapshot.cpu))
         case .ram:
-            return ByteFormatter.bytes(snapshot.ramUsed)
+            return ByteFormatter.menuBarBytes(snapshot.ramUsed)
         case .network:
-            return "↓\(ByteFormatter.byteRate(snapshot.networkDown)) ↑\(ByteFormatter.byteRate(snapshot.networkUp))"
+            return "↓\(ByteFormatter.menuBarRate(snapshot.networkDown)) ↑\(ByteFormatter.menuBarRate(snapshot.networkUp))"
         case .disk:
-            return "\(percent(snapshot.diskFraction))%"
+            return percentSlot(percent(snapshot.diskFraction))
         case .gpu:
-            guard let gpu = snapshot.gpu else { return "—" }
-            return "\(percent(gpu))%"
+            guard let gpu = snapshot.gpu else { return "   —" }
+            return percentSlot(percent(gpu))
         }
     }
 
@@ -61,6 +61,10 @@ public enum StatusTextFormatter {
         case .gpu:
             return snapshot.gpu.map { "GPU kullanımı yüzde \(percent($0))" } ?? "GPU kullanılamıyor"
         }
+    }
+
+    private static func percentSlot(_ value: Int) -> String {
+        String(repeating: " ", count: max(0, 3 - String(value).count)) + "\(value)%"
     }
 
     private static func percent(_ value: Double) -> Int {
